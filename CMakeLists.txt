@@ -7,12 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(kphysics
-
         src/math/Vec3.cpp
         src/math/Mat3.cpp
         src/core/RigidBody.cpp
         src/core/PhysicsWorld.cpp
         src/math/Quaternion.cpp
+        src/physics/Inertia.cpp
 )
 
 target_include_directories(kphysics
