@@ -17,9 +17,9 @@ RigidBody::RigidBody()
 
       torque_(0.0f, 0.0f, 0.0f),
 
-      inertiaTensor_(Mat3::identity()),
-      inverseInertiaTensor_(Mat3::identity()) {
-}
+    inertiaTensor_(Mat3::identity()),
+    worldInverseInertiaTensor_(Mat3::identity()),
+    inverseInertiaTensor_(Mat3::identity()) {}
 
 void RigidBody::setMass(float mass) {
 
@@ -51,11 +51,26 @@ RigidBody::getPosition() const {
     return position_;
 }
 
+void RigidBody::updateWorldInverseInertia() {
+
+    Mat3 rotation =
+        orientation_.toMatrix();
+
+    Mat3 rotationTranspose =
+        rotation.transpose();
+
+    worldInverseInertiaTensor_ =
+        rotation *
+        inverseInertiaTensor_ *
+        rotationTranspose;
+}
+
 void RigidBody::setOrientation(
     const Quaternion& orientation
 ) {
     orientation_ = orientation;
     orientation_.normalize();
+    updateWorldInverseInertia();
 }
 
 const Quaternion&
@@ -130,13 +145,16 @@ RigidBody::getInverseInertiaTensor() const {
     return inverseInertiaTensor_;
 }
 
+const Mat3&
+RigidBody::getWorldInverseInertiaTensor() const {
+    return worldInverseInertiaTensor_;
+}
+
 void RigidBody::integrate(float dt) {
 
     if (inverseMass_ == 0.0f) {
         return;
     }
-
-    // Linear dynamics
 
     acceleration_ =
         force_ * inverseMass_;
@@ -151,13 +169,10 @@ void RigidBody::integrate(float dt) {
     // Angular dynamics
 
     Vec3 angularAcceleration =
-        inverseInertiaTensor_ * torque_;
+        worldInverseInertiaTensor_ * torque_;
 
     angularVelocity_ +=
         angularAcceleration * dt;
-
-
-    // Quaternion integration
 
     Quaternion angularVelocityQuaternion(
         0.0f,
@@ -175,10 +190,7 @@ void RigidBody::integrate(float dt) {
         (0.5f * dt);
 
     orientation_.normalize();
-
-
-    // Clear accumulated forces
-
+    updateWorldInverseInertia();
     clearForces();
     clearTorque();
 }

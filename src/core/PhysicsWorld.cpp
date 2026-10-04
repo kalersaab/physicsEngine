@@ -3,7 +3,9 @@
 namespace kp {
 
     PhysicsWorld::PhysicsWorld()
-        : gravity_(0.0f, -9.81f, 0.0f) {
+    : gravity_(0.0f, -9.81f, 0.0f),
+      fixedTimeStep_(1.0f / 60.0f),
+      accumulator_(0.0f) {
     }
 
     RigidBody* PhysicsWorld::createBody() {
@@ -38,6 +40,31 @@ namespace kp {
         }
     }
 
+    void PhysicsWorld::update(float frameTime) {
+
+        accumulator_ += frameTime;
+
+        while (accumulator_ >= fixedTimeStep_) {
+
+            step(fixedTimeStep_);
+
+            accumulator_ -= fixedTimeStep_;
+        }
+    }
+
+    void PhysicsWorld::setFixedTimeStep(
+        float timestep
+    ) {
+        if (timestep <= 0.0f) {
+            return;
+        }
+
+        fixedTimeStep_ = timestep;
+    }
+
+    float PhysicsWorld::getFixedTimeStep() const {
+        return fixedTimeStep_;
+    }
     const std::vector<std::unique_ptr<RigidBody>>&
     PhysicsWorld::getBodies() const {
         return bodies_;

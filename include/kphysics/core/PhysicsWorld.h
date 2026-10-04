@@ -18,6 +18,12 @@ namespace kp {
 
         void step(float dt);
 
+        void update(float frameTime);
+
+        void setFixedTimeStep(float timestep);
+
+        float getFixedTimeStep() const;
+
         const std::vector<std::unique_ptr<RigidBody>>&
         getBodies() const;
 
@@ -25,6 +31,9 @@ namespace kp {
         Vec3 gravity_;
 
         std::vector<std::unique_ptr<RigidBody>> bodies_;
+
+        float fixedTimeStep_;
+        float accumulator_;
     };
 
 }

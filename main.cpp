@@ -1,52 +1,49 @@
 #include <iostream>
 
 #include "kphysics/core/RigidBody.h"
+#include "kphysics/physics/Inertia.h"
 
 int main() {
 
+    constexpr float mass = 2.0f;
+
+    constexpr float width = 2.0f;
+    constexpr float height = 4.0f;
+    constexpr float depth = 6.0f;
+
     kp::RigidBody body;
 
-    body.setMass(1.0f);
+    body.setMass(mass);
 
-    body.setPosition(
-        kp::Vec3(0.0f, 0.0f, 0.0f)
-    );
-
-    // Unit inertia tensor for now
     body.setInertiaTensor(
-        kp::Mat3::identity()
+        kp::Inertia::box(
+            mass,
+            width,
+            height,
+            depth
+        )
     );
 
-    // Apply torque around Y
-    body.applyTorque(
-        kp::Vec3(0.0f, 10.0f, 0.0f)
-    );
+    const kp::Mat3& inertia =
+        body.getInertiaTensor();
 
-    constexpr float dt = 1.0f / 60.0f;
+    std::cout
+        << "Box inertia:\n";
 
-    for (int frame = 0; frame < 60; ++frame) {
+    std::cout
+        << inertia.m[0][0] << " "
+        << inertia.m[0][1] << " "
+        << inertia.m[0][2] << '\n';
 
-        body.integrate(dt);
+    std::cout
+        << inertia.m[1][0] << " "
+        << inertia.m[1][1] << " "
+        << inertia.m[1][2] << '\n';
 
-        const auto& q =
-            body.getOrientation();
-
-        const auto& angularVelocity =
-            body.getAngularVelocity();
-
-        std::cout
-            << "Frame: " << frame
-            << " | Quaternion: "
-            << q.w << ", "
-            << q.x << ", "
-            << q.y << ", "
-            << q.z
-            << " | Angular Velocity: "
-            << angularVelocity.x << ", "
-            << angularVelocity.y << ", "
-            << angularVelocity.z
-            << '\n';
-    }
+    std::cout
+        << inertia.m[2][0] << " "
+        << inertia.m[2][1] << " "
+        << inertia.m[2][2] << '\n';
 
     return 0;
 }
