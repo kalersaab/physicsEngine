@@ -1,6 +1,2 @@
 /.idea
-/CMakeLists.txt
 /cmake-build-debug
-/examples
-/include
-/src
