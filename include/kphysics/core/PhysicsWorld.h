@@ -5,6 +5,9 @@
 
 #include "kphysics/core/RigidBody.h"
 #include "kphysics/math/Vec3.h"
+#include "kphysics/physics/BroadPhase.h"
+#include "kphysics/physics/Contact.h"
+#include "kphysics/physics/ImpulseSolver.h"
 
 namespace kp {
 
@@ -26,13 +29,17 @@ namespace kp {
 
         const std::vector<std::unique_ptr<RigidBody>>&
         getBodies() const;
-
+        std::vector<BroadPhase::CollisionPair>
+        getCollisionPairs() const;
+        BroadPhase broadPhase_;
+        std::vector<Contact> detectCollisions() const;
     private:
         Vec3 gravity_;
 
         std::vector<std::unique_ptr<RigidBody>> bodies_;
 
         float fixedTimeStep_;
+        ImpulseSolver impulseSolver_;
         float accumulator_;
     };
 

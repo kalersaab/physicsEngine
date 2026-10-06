@@ -9,14 +9,19 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(kphysics
         src/math/Vec3.cpp
         src/math/Mat3.cpp
+        src/math/Quaternion.cpp
+
+        src/physics/Inertia.cpp
+        src/physics/AABB.cpp
+        src/physics/BroadPhase.cpp
+        src/physics/CollisionDetector.cpp
+        src/physics/ImpulseSolver.cpp
+
         src/core/RigidBody.cpp
         src/core/PhysicsWorld.cpp
-        src/math/Quaternion.cpp
-        src/physics/Inertia.cpp
 )
 
-target_include_directories(kphysics
-        PUBLIC
+target_include_directories(kphysics PUBLIC
         ${PROJECT_SOURCE_DIR}/include
 )
 
@@ -24,7 +29,11 @@ add_executable(physicsEngine
         main.cpp
 )
 
-target_link_libraries(physicsEngine
-        PRIVATE
-        kphysics
+target_link_libraries(physicsEngine PRIVATE kphysics)
+
+add_executable(physicsTests
+        tests/PhysicsTests.cpp
+        include/kphysics/physics/Contact.h
 )
+
+target_link_libraries(physicsTests PRIVATE kphysics)

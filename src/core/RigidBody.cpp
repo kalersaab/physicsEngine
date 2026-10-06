@@ -1,4 +1,6 @@
 #include "kphysics/core/RigidBody.h"
+#include <cmath>
+#include <algorithm>
 
 namespace kp {
 
@@ -10,6 +12,7 @@ RigidBody::RigidBody()
 
       mass_(1.0f),
       inverseMass_(1.0f),
+    restitution_(0.2f),
 
       orientation_(Quaternion::identity()),
 
@@ -40,15 +43,36 @@ float RigidBody::getInverseMass() const {
     return inverseMass_;
 }
 
-void RigidBody::setPosition(
-    const Vec3& position
-) {
-    position_ = position;
-}
-
 const Vec3&
 RigidBody::getPosition() const {
     return position_;
+}
+
+void RigidBody::updateWorldAABB()
+{
+    const Mat3 rotation = orientation_.toMatrix();
+
+    const float ex =
+        std::fabs(rotation.m[0][0]) * halfExtents_.x +
+        std::fabs(rotation.m[0][1]) * halfExtents_.y +
+        std::fabs(rotation.m[0][2]) * halfExtents_.z;
+
+    const float ey =
+        std::fabs(rotation.m[1][0]) * halfExtents_.x +
+        std::fabs(rotation.m[1][1]) * halfExtents_.y +
+        std::fabs(rotation.m[1][2]) * halfExtents_.z;
+
+    const float ez =
+        std::fabs(rotation.m[2][0]) * halfExtents_.x +
+        std::fabs(rotation.m[2][1]) * halfExtents_.y +
+        std::fabs(rotation.m[2][2]) * halfExtents_.z;
+
+    Vec3 extent(ex, ey, ez);
+
+    worldAABB_ = AABB(
+        position_ - extent,
+        position_ + extent
+    );
 }
 
 void RigidBody::updateWorldInverseInertia() {
@@ -65,12 +89,29 @@ void RigidBody::updateWorldInverseInertia() {
         rotationTranspose;
 }
 
+void RigidBody::setPosition(const Vec3& position)
+{
+    position_ = position;
+    updateWorldAABB();
+}
+
 void RigidBody::setOrientation(
     const Quaternion& orientation
 ) {
     orientation_ = orientation;
     orientation_.normalize();
     updateWorldInverseInertia();
+    updateWorldAABB();
+}
+
+    void RigidBody::setRestitution(float restitution)
+{
+    restitution_ = std::clamp(restitution, 0.0f, 1.0f);
+}
+
+    float RigidBody::getRestitution() const
+{
+    return restitution_;
 }
 
 const Quaternion&
@@ -130,9 +171,13 @@ void RigidBody::setInertiaTensor(
     const Mat3& inertia
 ) {
     inertiaTensor_ = inertia;
+    inverseInertiaTensor_ = inertia.inverse();
+    updateWorldInverseInertia();
+}
 
-    inverseInertiaTensor_ =
-        inertia.inverse();
+void RigidBody::setVelocity(const Vec3& velocity)
+{
+    velocity_ = velocity;
 }
 
 const Mat3&
@@ -165,9 +210,6 @@ void RigidBody::integrate(float dt) {
     position_ +=
         velocity_ * dt;
 
-
-    // Angular dynamics
-
     Vec3 angularAcceleration =
         worldInverseInertiaTensor_ * torque_;
 
@@ -191,8 +233,25 @@ void RigidBody::integrate(float dt) {
 
     orientation_.normalize();
     updateWorldInverseInertia();
+    updateWorldAABB();
     clearForces();
     clearTorque();
+}
+
+void RigidBody::setHalfExtents(const Vec3& halfExtents)
+{
+    halfExtents_ = halfExtents;
+    updateWorldAABB();
+}
+
+const Vec3& RigidBody::getHalfExtents() const
+{
+    return halfExtents_;
+}
+
+const AABB& RigidBody::getWorldAABB() const
+{
+    return worldAABB_;
 }
 
 }

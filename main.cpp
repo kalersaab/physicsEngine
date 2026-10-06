@@ -8,7 +8,7 @@ int main() {
     constexpr float mass = 2.0f;
 
     constexpr float width = 2.0f;
-    constexpr float height = 4.0f;
+    constexpr float height = 2.0f;
     constexpr float depth = 6.0f;
 
     kp::RigidBody body;
