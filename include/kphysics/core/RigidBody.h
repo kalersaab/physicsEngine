@@ -59,6 +59,14 @@ namespace kp {
         void setRestitution(float restitution);
         float getRestitution() const;
         void setVelocity(const Vec3& velocity);
+        void applyImpulse(
+            const Vec3& impulse,
+            const Vec3& contactVector
+        );
+
+        void setAngularVelocity(const Vec3 &angularVelocity);
+        void setFriction(float friction);
+        float getFriction() const;
 
     private:
         void updateWorldInverseInertia();
@@ -84,6 +92,7 @@ namespace kp {
         Vec3 halfExtents_;
         AABB worldAABB_;
         float restitution_;
+        float friction_;
     };
 
 }

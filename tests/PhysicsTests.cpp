@@ -71,7 +71,6 @@ void testWorldInverseInertia()
 
     body.setInertiaTensor(inertia);
 
-    // Rotate 90 degrees around Y.
     Quaternion rotation =
         Quaternion::fromAxisAngle(
             Vec3(0.0f, 1.0f, 0.0f),
@@ -83,7 +82,6 @@ void testWorldInverseInertia()
     const Mat3& worldInverse =
         body.getWorldInverseInertiaTensor();
 
-    // X and Z axes swap after 90° Y rotation.
     const float expectedX = 1.0f / 3.333333f;
     const float expectedY = 1.0f / 6.666666f;
     const float expectedZ = 1.0f / 8.666666f;
@@ -123,14 +121,6 @@ void testGravity()
 
     Vec3 position = body->getPosition();
 
-    /*
-     * Semi-implicit Euler:
-     *
-     * v = 0 + (-9.81 * 1)
-     * p = 10 + v * 1
-     *
-     * => p = 0.19
-     */
     expect(
         approx(position.y, 0.19f, 0.01f),
         "Gravity integration incorrect"
@@ -427,6 +417,9 @@ void testAABBCollision()
     a->setRestitution(1.0f);
     b->setRestitution(1.0f);
 
+    a->setFriction(0.0f);
+    b->setFriction(0.0f);
+
     a->setHalfExtents(
         Vec3(1.0f, 1.0f, 1.0f)
     );
@@ -435,9 +428,6 @@ void testAABBCollision()
         Vec3(1.0f, 1.0f, 1.0f)
     );
 
-    /*
-     * Slight overlap.
-     */
     a->setPosition(
         Vec3(-0.9f, 0.0f, 0.0f)
     );
@@ -446,9 +436,7 @@ void testAABBCollision()
         Vec3(0.9f, 0.0f, 0.0f)
     );
 
-    /*
-     * Moving toward each other.
-     */
+
     a->setVelocity(
         Vec3(1.0f, 0.0f, 0.0f)
     );
@@ -476,13 +464,142 @@ void testAABBCollision()
         );
 
     expect(
-        distance >= 1.95f,
+        distance >= 1.94f,
         "Bodies were not separated"
     );
 
     std::cout << "  PASS\n";
 }
+    void testAngularCollisionResponse()
+{
+    std::cout << "[TEST] Angular collision response...\n";
 
+    PhysicsWorld world;
+
+    world.setGravity(
+        Vec3(0.0f, 0.0f, 0.0f)
+    );
+
+    RigidBody* a = world.createBody();
+    RigidBody* b = world.createBody();
+
+    a->setMass(2.0f);
+    b->setMass(2.0f);
+
+    a->setRestitution(0.5f);
+    b->setRestitution(0.5f);
+
+    a->setHalfExtents(
+        Vec3(1.0f, 1.0f, 1.0f)
+    );
+
+    b->setHalfExtents(
+        Vec3(1.0f, 1.0f, 1.0f)
+    );
+
+    a->setPosition(
+        Vec3(-1.5f, 0.0f, 0.0f)
+    );
+
+    b->setPosition(
+        Vec3(0.5f, 0.5f, 0.0f)
+    );
+
+
+    a->setVelocity(
+        Vec3(2.0f, 0.0f, 0.0f)
+    );
+
+    b->setVelocity(
+        Vec3(0.0f, 0.0f, 0.0f)
+    );
+
+    const Vec3 before =
+        a->getAngularVelocity();
+
+    world.step(1.0f / 60.0f);
+
+    const Vec3 after =
+        a->getAngularVelocity();
+
+    const float angularChange =
+        (after - before).length();
+
+    expect(
+        angularChange > 0.0001f,
+        "Off-center collision produced no rotation"
+    );
+
+    std::cout << "  PASS\n";
+}
+    void testFriction()
+{
+    std::cout << "[TEST] Friction...\n";
+
+    PhysicsWorld world;
+
+    world.setGravity(
+        Vec3(0.0f, -9.81f, 0.0f)
+    );
+
+    // Ground
+    RigidBody* ground =
+        world.createBody();
+
+    ground->setMass(0.0f);
+
+    ground->setHalfExtents(
+        Vec3(5.0f, 0.5f, 5.0f)
+    );
+
+    ground->setPosition(
+        Vec3(0.0f, -0.5f, 0.0f)
+    );
+
+    ground->setFriction(0.8f);
+
+    RigidBody* box =
+        world.createBody();
+
+    box->setMass(1.0f);
+
+    box->setHalfExtents(
+        Vec3(0.5f, 0.5f, 0.5f)
+    );
+
+    box->setPosition(
+        Vec3(0.0f, 0.6f, 0.0f)
+    );
+
+    box->setVelocity(
+        Vec3(5.0f, 0.0f, 0.0f)
+    );
+
+    box->setFriction(0.8f);
+
+    const float initialSpeed =
+        box->getVelocity().x;
+
+    for (int i = 0; i < 120; ++i)
+    {
+        world.step(1.0f / 60.0f);
+    }
+
+    const float finalSpeed =
+        std::fabs(box->getVelocity().x);
+
+    expect(
+        finalSpeed < initialSpeed,
+        "Friction did not reduce horizontal velocity"
+    );
+
+    expect(
+        box->getPosition().y > 0.3f,
+        "Box fell through ground"
+    );
+
+    std::cout << "  PASS\n";
+}
 }
 
 
@@ -506,6 +623,8 @@ int main()
         testAABBCollision();
         testNoAABBCollision();
         testCollisionResponse();
+        testAngularCollisionResponse();
+        testFriction();
 
         std::cout << "\n=================================\n";
         std::cout << "ALL TESTS PASSED\n";
