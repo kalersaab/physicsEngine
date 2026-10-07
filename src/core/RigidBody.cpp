@@ -1,25 +1,28 @@
 #include "kphysics/core/RigidBody.h"
+#include <cmath>
+#include <algorithm>
 
 namespace kp {
 
-RigidBody::RigidBody()
-    : position_(0.0f, 0.0f, 0.0f),
-      velocity_(0.0f, 0.0f, 0.0f),
-      acceleration_(0.0f, 0.0f, 0.0f),
-      force_(0.0f, 0.0f, 0.0f),
-
-      mass_(1.0f),
-      inverseMass_(1.0f),
-
-      orientation_(Quaternion::identity()),
-
-      angularVelocity_(0.0f, 0.0f, 0.0f),
-
-      torque_(0.0f, 0.0f, 0.0f),
-
-    inertiaTensor_(Mat3::identity()),
-    worldInverseInertiaTensor_(Mat3::identity()),
-    inverseInertiaTensor_(Mat3::identity()) {}
+    RigidBody::RigidBody()
+        : position_(0, 0, 0),
+          velocity_(0, 0, 0),
+          acceleration_(0, 0, 0),
+          force_(0, 0, 0),
+          mass_(1.0f),
+          inverseMass_(1.0f),
+          restitution_(0.2f),
+          friction_(0.6f),
+          orientation_(Quaternion::identity()),
+          angularVelocity_(0, 0, 0),
+          torque_(0, 0, 0),
+          inertiaTensor_(Mat3::identity()),
+          inverseInertiaTensor_(Mat3::identity()),
+          worldInverseInertiaTensor_(Mat3::identity()),
+          halfExtents_(0.5f, 0.5f, 0.5f)
+    {
+        updateWorldAABB();
+    }
 
 void RigidBody::setMass(float mass) {
 
@@ -40,15 +43,36 @@ float RigidBody::getInverseMass() const {
     return inverseMass_;
 }
 
-void RigidBody::setPosition(
-    const Vec3& position
-) {
-    position_ = position;
-}
-
 const Vec3&
 RigidBody::getPosition() const {
     return position_;
+}
+
+void RigidBody::updateWorldAABB()
+{
+    const Mat3 rotation = orientation_.toMatrix();
+
+    const float ex =
+        std::fabs(rotation.m[0][0]) * halfExtents_.x +
+        std::fabs(rotation.m[0][1]) * halfExtents_.y +
+        std::fabs(rotation.m[0][2]) * halfExtents_.z;
+
+    const float ey =
+        std::fabs(rotation.m[1][0]) * halfExtents_.x +
+        std::fabs(rotation.m[1][1]) * halfExtents_.y +
+        std::fabs(rotation.m[1][2]) * halfExtents_.z;
+
+    const float ez =
+        std::fabs(rotation.m[2][0]) * halfExtents_.x +
+        std::fabs(rotation.m[2][1]) * halfExtents_.y +
+        std::fabs(rotation.m[2][2]) * halfExtents_.z;
+
+    Vec3 extent(ex, ey, ez);
+
+    worldAABB_ = AABB(
+        position_ - extent,
+        position_ + extent
+    );
 }
 
 void RigidBody::updateWorldInverseInertia() {
@@ -65,12 +89,39 @@ void RigidBody::updateWorldInverseInertia() {
         rotationTranspose;
 }
 
+void RigidBody::setPosition(const Vec3& position)
+{
+    position_ = position;
+    updateWorldAABB();
+}
+
 void RigidBody::setOrientation(
     const Quaternion& orientation
 ) {
     orientation_ = orientation;
     orientation_.normalize();
     updateWorldInverseInertia();
+    updateWorldAABB();
+}
+
+    void RigidBody::setRestitution(float restitution)
+{
+    restitution_ = std::clamp(restitution, 0.0f, 1.0f);
+}
+
+    void RigidBody::setFriction(float friction)
+    {
+        friction_ = std::max(0.0f, friction);
+    }
+
+    float RigidBody::getFriction() const
+    {
+        return friction_;
+    }
+
+    float RigidBody::getRestitution() const
+{
+    return restitution_;
 }
 
 const Quaternion&
@@ -130,9 +181,13 @@ void RigidBody::setInertiaTensor(
     const Mat3& inertia
 ) {
     inertiaTensor_ = inertia;
+    inverseInertiaTensor_ = inertia.inverse();
+    updateWorldInverseInertia();
+}
 
-    inverseInertiaTensor_ =
-        inertia.inverse();
+void RigidBody::setVelocity(const Vec3& velocity)
+{
+    velocity_ = velocity;
 }
 
 const Mat3&
@@ -165,9 +220,6 @@ void RigidBody::integrate(float dt) {
     position_ +=
         velocity_ * dt;
 
-
-    // Angular dynamics
-
     Vec3 angularAcceleration =
         worldInverseInertiaTensor_ * torque_;
 
@@ -191,8 +243,49 @@ void RigidBody::integrate(float dt) {
 
     orientation_.normalize();
     updateWorldInverseInertia();
+    updateWorldAABB();
     clearForces();
     clearTorque();
+}
+
+void RigidBody::setHalfExtents(const Vec3& halfExtents)
+{
+    halfExtents_ = halfExtents;
+    updateWorldAABB();
+}
+
+const Vec3& RigidBody::getHalfExtents() const
+{
+    return halfExtents_;
+}
+
+const AABB& RigidBody::getWorldAABB() const
+{
+    return worldAABB_;
+}
+
+    void RigidBody::applyImpulse(
+        const Vec3& impulse,
+        const Vec3& contactVector
+    )
+{
+    if (inverseMass_ <= 0.0f)
+        return;
+
+    velocity_ += impulse * inverseMass_;
+
+    const Vec3 angularImpulse =
+        Vec3::cross(contactVector, impulse);
+
+    angularVelocity_ +=
+        worldInverseInertiaTensor_ *
+        angularImpulse;
+}
+    void RigidBody::setAngularVelocity(
+    const Vec3& angularVelocity
+)
+{
+    angularVelocity_ = angularVelocity;
 }
 
 }

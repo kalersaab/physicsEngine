@@ -30,6 +30,7 @@ namespace kp {
 
         static float dot(const Vec3& a, const Vec3& b);
         static Vec3 cross(const Vec3& a, const Vec3& b);
+        Vec3 operator-() const;
     };
 
 }

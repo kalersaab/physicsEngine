@@ -3,6 +3,7 @@
 #include "kphysics/math/Vec3.h"
 #include "kphysics/math/Mat3.h"
 #include "kphysics/math/Quaternion.h"
+#include "kphysics/physics/AABB.h"
 
 namespace kp {
 
@@ -48,6 +49,24 @@ namespace kp {
         const Mat3& getWorldInverseInertiaTensor() const;
 
         void integrate(float dt);
+        void setHalfExtents(const Vec3& halfExtents);
+
+        const Vec3& getHalfExtents() const;
+
+        const AABB& getWorldAABB() const;
+
+        void updateWorldAABB();
+        void setRestitution(float restitution);
+        float getRestitution() const;
+        void setVelocity(const Vec3& velocity);
+        void applyImpulse(
+            const Vec3& impulse,
+            const Vec3& contactVector
+        );
+
+        void setAngularVelocity(const Vec3 &angularVelocity);
+        void setFriction(float friction);
+        float getFriction() const;
 
     private:
         void updateWorldInverseInertia();
@@ -70,6 +89,10 @@ namespace kp {
         Mat3 inertiaTensor_;
         Mat3 inverseInertiaTensor_;
         Mat3 worldInverseInertiaTensor_;
+        Vec3 halfExtents_;
+        AABB worldAABB_;
+        float restitution_;
+        float friction_;
     };
 
 }

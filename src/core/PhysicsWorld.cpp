@@ -1,5 +1,5 @@
 #include "kphysics/core/PhysicsWorld.h"
-
+#include "kphysics/physics/CollisionDetector.h"
 namespace kp {
 
     PhysicsWorld::PhysicsWorld()
@@ -23,21 +23,36 @@ namespace kp {
         gravity_ = gravity;
     }
 
-    void PhysicsWorld::step(float dt) {
-
-        for (auto& body : bodies_) {
-
-            if (body->getInverseMass() == 0.0f) {
+    void PhysicsWorld::step(float dt)
+    {
+        for (auto& body : bodies_)
+        {
+            if (body->getInverseMass() <= 0.0f)
                 continue;
-            }
 
-            Vec3 gravityForce =
-                gravity_ * body->getMass();
+            body->applyForce(
+                gravity_ *
+                body->getMass()
+            );
+        }
 
-            body->applyForce(gravityForce);
-
+        for (auto& body : bodies_)
+        {
             body->integrate(dt);
         }
+
+        for (auto& body : bodies_)
+        {
+            body->updateWorldAABB();
+        }
+
+        std::vector<Contact> contacts =
+            detectCollisions();
+        
+        impulseSolver_.solve(
+            contacts,
+            dt
+        );
     }
 
     void PhysicsWorld::update(float frameTime) {
@@ -68,6 +83,55 @@ namespace kp {
     const std::vector<std::unique_ptr<RigidBody>>&
     PhysicsWorld::getBodies() const {
         return bodies_;
+    }
+    std::vector<BroadPhase::CollisionPair>
+    PhysicsWorld::getCollisionPairs() const
+    {
+        std::vector<RigidBody*> bodies;
+
+        bodies.reserve(bodies_.size());
+
+        for (const auto& body : bodies_) {
+            bodies.push_back(body.get());
+        }
+
+        std::vector<BroadPhase::CollisionPair> pairs;
+
+        broadPhase_.computePairs(
+            bodies,
+            pairs
+        );
+
+        return pairs;
+    }
+
+    std::vector<Contact>
+    PhysicsWorld::detectCollisions() const
+    {
+        std::vector<Contact> contacts;
+
+        auto pairs = getCollisionPairs();
+
+        for (const auto& pair : pairs)
+        {
+            Contact contact;
+
+            if (
+                CollisionDetector::aabbVsAabb(
+                    *pair.first,
+                    *pair.second,
+                    contact
+                )
+            )
+            {
+                contact.bodyA = pair.first;
+                contact.bodyB = pair.second;
+
+                contacts.push_back(contact);
+            }
+        }
+
+        return contacts;
     }
 
 }

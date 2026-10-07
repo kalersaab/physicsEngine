@@ -106,5 +106,9 @@ namespace kp {
             a.x * b.y - a.y * b.x
         };
     }
+    Vec3 Vec3::operator-() const
+    {
+        return Vec3(-x, -y, -z);
+    }
 
 }
