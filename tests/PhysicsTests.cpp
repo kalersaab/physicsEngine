@@ -600,6 +600,85 @@ void testAABBCollision()
 
     std::cout << "  PASS\n";
 }
+    void testRestingContact()
+{
+    PhysicsWorld world;
+
+    world.setGravity(
+        Vec3(0.0f, -9.81f, 0.0f)
+    );
+
+    // Ground
+    RigidBody* ground =
+        world.createBody();
+
+    ground->setMass(0.0f);
+
+    ground->setHalfExtents(
+        Vec3(5.0f, 0.5f, 5.0f)
+    );
+
+    ground->setPosition(
+        Vec3(0.0f, -0.5f, 0.0f)
+    );
+
+    ground->setRestitution(0.0f);
+    ground->setFriction(0.8f);
+
+    // Dynamic box
+    RigidBody* box =
+        world.createBody();
+
+    box->setMass(1.0f);
+
+    box->setHalfExtents(
+        Vec3(0.5f, 0.5f, 0.5f)
+    );
+
+    box->setPosition(
+        Vec3(0.0f, 3.0f, 0.0f)
+    );
+
+    box->setRestitution(0.2f);
+    box->setFriction(0.8f);
+
+    for (int i = 0; i < 300; ++i)
+    {
+        world.step(1.0f / 60.0f);
+    }
+
+    const Vec3 position =
+        box->getPosition();
+
+    const Vec3 velocity =
+        box->getVelocity();
+
+    std::cout
+        << "  Final position: "
+        << position.x << ", "
+        << position.y << ", "
+        << position.z
+        << "\n";
+
+    std::cout
+        << "  Final velocity: "
+        << velocity.x << ", "
+        << velocity.y << ", "
+        << velocity.z
+        << "\n";
+
+    // Box should remain close to the ground.
+    expect(
+        position.y > 0.45f &&
+        position.y < 0.65f,
+        "Resting box has unstable position"
+    );
+
+    expect(
+        std::fabs(velocity.y) < 0.2f,
+        "Resting box has excessive vertical velocity"
+    );
+}
 }
 
 
@@ -625,6 +704,7 @@ int main()
         testCollisionResponse();
         testAngularCollisionResponse();
         testFriction();
+        testRestingContact();
 
         std::cout << "\n=================================\n";
         std::cout << "ALL TESTS PASSED\n";

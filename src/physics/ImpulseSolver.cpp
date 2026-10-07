@@ -77,11 +77,17 @@ void ImpulseSolver::solveContact(Contact& contact)
     if (velocityAlongNormal > 0.0f)
         return;
 
-    const float restitution =
-        std::min(
-            a->getRestitution(),
-            b->getRestitution()
-        );
+    constexpr float restitutionThreshold = 1.0f;
+
+    float restitution = std::min(
+        a->getRestitution(),
+        b->getRestitution()
+    );
+
+    if (std::fabs(velocityAlongNormal) < restitutionThreshold)
+    {
+        restitution = 0.0f;
+    }
 
     const Vec3 raCrossN =
         Vec3::cross(
@@ -231,7 +237,7 @@ void ImpulseSolver::solveContact(Contact& contact)
             a->getFriction() *
             b->getFriction()
         );
-    
+
     const float maxFriction =
         normalImpulseMagnitude *
         friction;
@@ -280,19 +286,27 @@ void ImpulseSolver::positionalCorrection(
         return;
 
     constexpr float percent = 0.8f;
-    constexpr float slop = 0.01f;
+    constexpr float slop = 0.005f;
 
     const float correctionMagnitude =
-        std::max(
-            contact.penetration - slop,
-            0.0f
-        ) *
-        percent /
-        totalInverseMass;
+    std::max(
+        contact.penetration - slop,
+        0.0f
+    ) *
+    percent /
+    totalInverseMass;
+
+    const float maxCorrection = 0.2f;
+
+    const float clampedCorrection =
+        std::min(
+            correctionMagnitude,
+            maxCorrection
+        );
 
     const Vec3 correction =
         contact.normal *
-        correctionMagnitude;
+        clampedCorrection;
 
     a->setPosition(
         a->getPosition() -
