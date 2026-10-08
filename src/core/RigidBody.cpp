@@ -30,6 +30,8 @@ void RigidBody::setMass(float mass) {
 
     if (mass <= 0.0f) {
         inverseMass_ = 0.0f;
+        inverseInertiaTensor_ = Mat3();
+        worldInverseInertiaTensor_ = Mat3();
     } else {
         inverseMass_ = 1.0f / mass;
     }
@@ -217,6 +219,10 @@ void RigidBody::integrate(float dt) {
     velocity_ +=
         acceleration_ * dt;
 
+    // Apply minimal linear damping to stabilize simulation
+    constexpr float linearDamping = 0.999f;
+    velocity_ *= linearDamping;
+
     position_ +=
         velocity_ * dt;
 
@@ -225,6 +231,10 @@ void RigidBody::integrate(float dt) {
 
     angularVelocity_ +=
         angularAcceleration * dt;
+
+    // Apply angular damping to stabilize rotation
+    constexpr float angularDamping = 0.99f;
+    angularVelocity_ *= angularDamping;
 
     Quaternion angularVelocityQuaternion(
         0.0f,

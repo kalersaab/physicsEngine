@@ -16,7 +16,7 @@ add_library(kphysics
         src/physics/BroadPhase.cpp
         src/physics/CollisionDetector.cpp
         src/physics/ImpulseSolver.cpp
-
+        src/physics/ContactManifold.cpp
         src/core/RigidBody.cpp
         src/core/PhysicsWorld.cpp
 )

@@ -8,6 +8,7 @@
 #include "kphysics/physics/BroadPhase.h"
 #include "kphysics/physics/Contact.h"
 #include "kphysics/physics/ImpulseSolver.h"
+#include "kphysics/physics/ContactManifold.h"
 
 namespace kp {
 
@@ -18,6 +19,8 @@ namespace kp {
         RigidBody* createBody();
 
         void setGravity(const Vec3& gravity);
+
+        std::vector<Contact> detectCollisions() const;
 
         void step(float dt);
 
@@ -31,8 +34,13 @@ namespace kp {
         getBodies() const;
         std::vector<BroadPhase::CollisionPair>
         getCollisionPairs() const;
+        
+        std::vector<ContactManifold>
+        detectContactManifolds() const;
+
+    private:
         BroadPhase broadPhase_;
-        std::vector<Contact> detectCollisions() const;
+
     private:
         Vec3 gravity_;
 

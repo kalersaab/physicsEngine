@@ -1,5 +1,6 @@
 #include "kphysics/core/PhysicsWorld.h"
 #include "kphysics/physics/CollisionDetector.h"
+
 namespace kp {
 
     PhysicsWorld::PhysicsWorld()
@@ -31,8 +32,7 @@ namespace kp {
                 continue;
 
             body->applyForce(
-                gravity_ *
-                body->getMass()
+                gravity_ * body->getMass()
             );
         }
 
@@ -46,11 +46,11 @@ namespace kp {
             body->updateWorldAABB();
         }
 
-        std::vector<Contact> contacts =
-            detectCollisions();
-        
+        std::vector<ContactManifold> manifolds =
+            detectContactManifolds();
+
         impulseSolver_.solve(
-            contacts,
+            manifolds,
             dt
         );
     }
@@ -132,6 +132,33 @@ namespace kp {
         }
 
         return contacts;
+    }
+    std::vector<ContactManifold>
+    PhysicsWorld::detectContactManifolds() const
+    {
+        std::vector<ContactManifold> manifolds;
+
+        const auto pairs =
+            getCollisionPairs();
+
+        manifolds.reserve(pairs.size());
+
+        for (const auto& pair : pairs)
+        {
+            ContactManifold manifold;
+
+            if (CollisionDetector::aabbVsAabb(
+                    *pair.first,
+                    *pair.second,
+                    manifold))
+            {
+                manifolds.push_back(
+                    manifold
+                );
+            }
+        }
+
+        return manifolds;
     }
 
 }

@@ -600,6 +600,155 @@ void testAABBCollision()
 
     std::cout << "  PASS\n";
 }
+    void testRestingContact()
+{
+    PhysicsWorld world;
+
+    world.setGravity(
+        Vec3(0.0f, -9.81f, 0.0f)
+    );
+
+    RigidBody* ground =
+        world.createBody();
+
+    ground->setMass(0.0f);
+
+    ground->setHalfExtents(
+        Vec3(5.0f, 0.5f, 5.0f)
+    );
+
+    ground->setPosition(
+        Vec3(0.0f, -0.5f, 0.0f)
+    );
+
+    ground->setRestitution(0.0f);
+    ground->setFriction(0.8f);
+
+    RigidBody* box =
+        world.createBody();
+
+    box->setMass(1.0f);
+
+    box->setHalfExtents(
+        Vec3(0.5f, 0.5f, 0.5f)
+    );
+
+    box->setPosition(
+        Vec3(0.0f, 3.0f, 0.0f)
+    );
+
+    box->setRestitution(0.2f);
+    box->setFriction(0.8f);
+
+    for (int i = 0; i < 300; ++i)
+    {
+        world.step(1.0f / 60.0f);
+    }
+
+    const Vec3 position =
+        box->getPosition();
+
+    const Vec3 velocity =
+        box->getVelocity();
+
+    std::cout
+        << "  Final position: "
+        << position.x << ", "
+        << position.y << ", "
+        << position.z
+        << "\n";
+
+    std::cout
+        << "  Final velocity: "
+        << velocity.x << ", "
+        << velocity.y << ", "
+        << velocity.z
+        << "\n";
+
+    // Box should remain close to the ground.
+    expect(
+        position.y > 0.45f &&
+        position.y < 0.85f,
+        "Resting box has unstable position"
+    );
+
+    expect(
+        std::fabs(velocity.y) < 0.5f,
+        "Resting box has excessive vertical velocity"
+    );
+}
+void testContactManifold()
+{
+    PhysicsWorld world;
+
+    world.setGravity(
+        Vec3(0, 0, 0)
+    );
+
+    RigidBody* a =
+        world.createBody();
+
+    RigidBody* b =
+        world.createBody();
+
+    a->setMass(1.0f);
+    b->setMass(1.0f);
+
+    a->setHalfExtents(
+        Vec3(1, 1, 1)
+    );
+
+    b->setHalfExtents(
+        Vec3(1, 1, 1)
+    );
+
+    a->setPosition(
+        Vec3(-0.5f, 0, 0)
+    );
+
+    b->setPosition(
+        Vec3(0.5f, 0, 0)
+    );
+
+    const auto manifolds =
+        world.detectContactManifolds();
+
+    expect(
+        manifolds.size() == 1,
+        "Expected one contact manifold"
+    );
+
+    const ContactManifold& manifold =
+        manifolds[0];
+
+    std::cout
+        << "  Contact count: "
+        << manifold.getContactCount()
+        << "\n";
+
+    expect(
+        manifold.getContactCount() == 4,
+        "Expected four manifold contacts"
+    );
+
+    for (std::size_t i = 0;
+         i < manifold.getContactCount();
+         ++i)
+    {
+        const Contact& contact =
+            manifold.getContact(i);
+
+        expect(
+            contact.penetration > 0.0f,
+            "Invalid contact penetration"
+        );
+
+        expect(
+            contact.normal.x > 0.0f,
+            "Invalid manifold normal"
+        );
+    }
+}
 }
 
 
@@ -625,6 +774,8 @@ int main()
         testCollisionResponse();
         testAngularCollisionResponse();
         testFriction();
+        testRestingContact();
+        testContactManifold();
 
         std::cout << "\n=================================\n";
         std::cout << "ALL TESTS PASSED\n";
